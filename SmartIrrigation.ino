@@ -12,11 +12,9 @@
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-bool willRainSoon = false; // for 24 hour rain decision
-
+bool willRainSoon = false; 
 String reason = "Initializing...";
 
-// Pin definitions
 #define SOIL_MOISTURE_PIN A0
 #define RELAY_PIN D5
 #define RAIN_SENSOR_PIN D6
@@ -24,22 +22,16 @@ String reason = "Initializing...";
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-// Placeholder values
 float pHLevel = 7.0;
 float npkLevel = 4.0;
 
-// WiFi credentials
-const char* ssid = "Hotspot";
-const char* password = "Moonlight";
-
-// OpenWeatherMap API Key and City
+const char* ssid = "";
+const char* password = "";
 const String apiKey = "82d38460bba08ea5c65466c24b1d0d54";
 const String city = "Pune";
 const String country = "IN";
 
 WiFiClient client;
-
-// Function to fetch current weather
 void fetchCurrentWeather() {
   HTTPClient http;
   String url = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "," + country + "&appid=" + apiKey + "&units=metric";
@@ -55,7 +47,6 @@ void fetchCurrentWeather() {
     int humidity = doc["main"]["humidity"];
     String condition = doc["weather"][0]["description"];
     String cityName = doc["name"];
-    // Display the current weather on the OLED
     display.clearDisplay();
     display.setTextSize(1);  
     display.setTextColor(SSD1306_WHITE);  
@@ -67,24 +58,20 @@ void fetchCurrentWeather() {
     display.print("Humidity: " + String(humidity) + "%");
     display.setCursor(0, 30);
     display.print("Condition: " + condition);
-    display.display();  // Update the display
-
+    display.display();  
   } else {
     Serial.println("Failed to fetch current weather data.");
   }
 
   http.end();
 }
-
-// Function to fetch the 24-hour forecast
 void fetch24HourForecast() {
   HTTPClient http;
   String url = "http://api.openweathermap.org/data/2.5/forecast?q=" + city + "," + country + "&appid=" + apiKey + "&units=metric";
   http.begin(client, url);
   int httpCode = http.GET();
 
-  willRainSoon = false; // Reset the flag
-
+  willRainSoon = false;
   if (httpCode == 200) {
     String payload = http.getString();
     DynamicJsonDocument doc(4096);
@@ -92,8 +79,8 @@ void fetch24HourForecast() {
 
     JsonArray list = doc["list"];
     
-    for (int i = 0; i < 8; i++) {  // next 24 hours (8 entries)
-      String condition = list[i]["weather"][0]["main"];  // e.g., "Rain", "Clear"
+    for (int i = 0; i < 8; i++) {  
+      String condition = list[i]["weather"][0]["main"];  
       if (condition == "Rain") {
         willRainSoon = true;
         break;
@@ -111,8 +98,6 @@ void fetch24HourForecast() {
 void setup() {
   Serial.begin(9600);
   delay(1000);
-
-  // Connect to WiFi
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
@@ -121,10 +106,8 @@ void setup() {
   }
   Serial.println("\nWiFi connected");
 
-  // Get current weather
   fetchCurrentWeather();
 
-  // Get forecast
   fetch24HourForecast();
 
   pinMode(SOIL_MOISTURE_PIN, INPUT);
